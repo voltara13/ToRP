@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Windows.Media;
 using LiveCharts;
+using LiveCharts.Configurations;
 using LiveCharts.Wpf;
 using MathNet.Numerics.Distributions;
 
@@ -13,37 +14,14 @@ namespace ToRP.ViewModel
 {
     public class MainWindowViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
-        private readonly FunctionDelegate _function = (arguments) =>
-        {
-            var U = arguments[0];
-            var V = arguments[1];
-            var w = arguments[2];
-            var t = arguments[3];
+        private readonly Func<double, double, double> _spacingFunction = (intensity, randomValue) => -1 / intensity * Math.Log(randomValue);
 
-            return U * Math.Cos(w * t) + V * Math.Sin(w * t);
-        };
-
-        private readonly FunctionDelegate _standardDeviation = (arguments) =>
-        {
-            var w = arguments[0];
-            var t = arguments[1];
-
-            return Math.Sqrt(0.25 * (1 - 0.7 * (Math.Sin(2 * t * w))));
-        };
-
-        private readonly FunctionDelegate _expected = (_) => 0;
-
-        private delegate double FunctionDelegate(params double[] arguments);
-
-        private double _constantValue = 3.0;
-        private double _expectedValueU;
-        private double _expectedValueV;
-        private double _standardDeviationU = 0.5;
-        private double _standardDeviationV = 0.5;
+        private double _expectedValue = 10.0;
+        private double _intensity = 0.4;
+        private double _simulationTime = 100.0;
+        private double _standardDeviation = 4.0;
 
         private GenerateCommand? _generateCommand;
-        private int _countPoints = 10;
-        private int _countTests = 10;
 
         public int ErrorsCount;
         private SeriesCollection _seriesCollection = new();
@@ -61,53 +39,36 @@ namespace ToRP.ViewModel
             set => OnSeriesCollectionChanged(SeriesCollection, value);
         }
 
-        public int CountPoints
+        public double Intensity
         {
-            get => _countPoints;
-            set => OnCountPointsChanged(CountPoints, value);
+            get => _intensity;
+            set => OnIntensityChanged(Intensity, value);
         }
 
-        public int CountTests
+        public double ExpectedValue
         {
-            get => _countTests;
-            set => OnCountTestsChanged(CountTests, value);
+            get => _expectedValue;
+            set => OnExpectedValueChanged(ExpectedValue, value);
         }
 
-        public double ExpectedValueU
+        public double StandardDeviation
         {
-            get => _expectedValueU;
-            set => OnExpectedValueUChanged(ExpectedValueU, value);
+            get => _standardDeviation;
+            set => OnStandardDeviationChanged(StandardDeviation, value);
         }
 
-        public double ExpectedValueV
+        public double SimulationTime
         {
-            get => _expectedValueV;
-            set => OnExpectedValueVChanged(ExpectedValueV, value);
-        }
-
-        public double StandardDeviationU
-        {
-            get => _standardDeviationU;
-            set => OnStandardDeviationUChanged(StandardDeviationU, value);
-        }
-
-        public double StandardDeviationV
-        {
-            get => _standardDeviationV;
-            set => OnStandardDeviationVChanged(StandardDeviationV, value);
-        }
-
-        public double ConstantValue
-        {
-            get => _constantValue;
-            set => OnConstantValueChanged(ConstantValue, value);
+            get => _simulationTime;
+            set => OnSimulationTimeChanged(SimulationTime, value);
         }
 
         public GenerateCommand GenerateCommand
         {
             get
             {
-                return _generateCommand ??= new GenerateCommand(_ => OnGenerateGraphs(), _ => string.IsNullOrEmpty(Error) && ErrorsCount == 0);
+                return _generateCommand ??= new GenerateCommand(_ => OnGenerateGraphs(),
+                    _ => string.IsNullOrEmpty(Error) && ErrorsCount == 0);
             }
         }
 
@@ -121,10 +82,12 @@ namespace ToRP.ViewModel
 
                 switch (columnName)
                 {
-                    case nameof(CountTests) when CountTests < 0:
-                    case nameof(CountPoints) when CountPoints < 0:
+                    case nameof(Intensity) when Intensity < 0:
+                    case nameof(ExpectedValue) when ExpectedValue < 0:
+                    case nameof(StandardDeviation) when StandardDeviation < 0:
+                    case nameof(SimulationTime) when SimulationTime < 0:
                     {
-                        result = "Количество не может быть отрицательным";
+                        result = "Величина не может быть отрицательной";
                         break;
                     }
                 }
@@ -152,136 +115,93 @@ namespace ToRP.ViewModel
             OnPropertyChanged(nameof(SeriesCollection));
         }
 
-        private void OnCountPointsChanged(int oldValue, int newValue)
-        {
-            if (oldValue == newValue)
-            {
-                return;
-            }
-
-            _countPoints = newValue;
-
-            OnPropertyChanged(nameof(CountPoints));
-        }
-
-        private void OnCountTestsChanged(int oldValue, int newValue)
-        {
-            if (oldValue == newValue)
-            {
-                return;
-            }
-
-            _countTests = newValue;
-
-            OnPropertyChanged(nameof(CountTests));
-        }
-
-        private void OnExpectedValueUChanged(double oldValue, double newValue)
+        private void OnIntensityChanged(double oldValue, double newValue)
         {
             if (Math.Abs(oldValue - newValue) < 1e-4)
             {
                 return;
             }
 
-            _expectedValueU = newValue;
+            _intensity = newValue;
 
-            OnPropertyChanged(nameof(ExpectedValueU));
+            OnPropertyChanged(nameof(Intensity));
         }
 
-        private void OnExpectedValueVChanged(double oldValue, double newValue)
+        private void OnExpectedValueChanged(double oldValue, double newValue)
         {
             if (Math.Abs(oldValue - newValue) < 1e-4)
             {
                 return;
             }
 
-            _expectedValueV = newValue;
+            _expectedValue = newValue;
 
-            OnPropertyChanged(nameof(ExpectedValueV));
+            OnPropertyChanged(nameof(ExpectedValue));
         }
 
-        private void OnStandardDeviationUChanged(double oldValue, double newValue)
+        private void OnStandardDeviationChanged(double oldValue, double newValue)
         {
             if (Math.Abs(oldValue - newValue) < 1e-4)
             {
                 return;
             }
 
-            _standardDeviationU = newValue;
+            _standardDeviation = newValue;
 
-            OnPropertyChanged(nameof(StandardDeviationU));
+            OnPropertyChanged(nameof(StandardDeviation));
         }
 
-        private void OnStandardDeviationVChanged(double oldValue, double newValue)
+        private void OnSimulationTimeChanged(double oldValue, double newValue)
         {
             if (Math.Abs(oldValue - newValue) < 1e-4)
             {
                 return;
             }
 
-            _standardDeviationV = newValue;
+            _simulationTime = newValue;
 
-            OnPropertyChanged(nameof(StandardDeviationV));
+            OnPropertyChanged(nameof(SimulationTime));
         }
 
-        private void OnConstantValueChanged(double oldValue, double newValue)
-        {
-            if (Math.Abs(oldValue - newValue) < 1e-4)
-            {
-                return;
-            }
 
-            _constantValue = newValue;
-
-            OnPropertyChanged(nameof(ConstantValue));
-        }
-
-        private void OnAddSeries<T>(IEnumerable<T> values, string title, double strokeThickness, Brush? color = null)
+        private void OnAddSeries(ChartValues<KeyValuePair<double, int>> values, string title)
         {
             var item = new LineSeries
             {
-                Values = new ChartValues<T>(values),
+                Values = values,
                 LineSmoothness = 0,
                 Title = title,
                 Fill = Brushes.Transparent,
-                StrokeThickness = strokeThickness,
-                PointGeometrySize = 5
+                PointGeometrySize = 5,
+                Configuration = new CartesianMapper<KeyValuePair<double, int>>()
+                    .X(point => point.Key)
+                    .Y(point => point.Value)
             };
 
-            if (color != null)
-            {
-                item.Stroke = color;
-            }
-
             SeriesCollection.Add(item);
-        }
-
-        private IEnumerable<double> OnGetChartValues(FunctionDelegate functionDelegate, params Func<double, double>[] arguments)
-        {
-
-            for (var t = 0; t < CountPoints; ++t)
-            {
-                var tempArguments = arguments.Select(x => x(0)).ToList();
-                tempArguments.Add(t);
-
-                yield return functionDelegate(tempArguments.ToArray());
-            }
         }
 
         public void OnGenerateGraphs()
         {
             SeriesCollection.Clear();
 
-            var generatorU = new Normal(ExpectedValueU, StandardDeviationU);
-            var generatorV = new Normal(ExpectedValueV, StandardDeviationV);
+            var generatorCount = new Normal(ExpectedValue, StandardDeviation);
+            var generatorTime = new ContinuousUniform(0, 1);
 
-            for (var i = 0; i < CountTests; ++i)
+            var currentTime = _spacingFunction(Intensity, generatorTime.Sample());
+
+            var values = new ChartValues<KeyValuePair<double, int>>();
+
+            while (currentTime < SimulationTime)
             {
-                OnAddSeries(OnGetChartValues(_function, _ => generatorU.Sample(), _ => generatorV.Sample(), _ => ConstantValue), $"Процесс {i + 1}", 1);
+                var count = (int) Math.Round(Math.Abs(generatorCount.Sample()));
+
+                values.Add(new KeyValuePair<double, int>(currentTime, count));
+
+                currentTime += _spacingFunction(Intensity, generatorTime.Sample());
             }
 
-            OnAddSeries(OnGetChartValues(_standardDeviation, _ => ConstantValue), "Ср. кв. откл.", 2, Brushes.Black);
-            OnAddSeries(OnGetChartValues(_expected), "Мат. ож.", 2, Brushes.Brown);
+            OnAddSeries(values, "Кол-во вагонов");
 
             OnPropertyChanged(nameof(SeriesCollection));
         }
