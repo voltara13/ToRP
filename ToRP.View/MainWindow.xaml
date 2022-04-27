@@ -66,8 +66,8 @@
                      Text="{Binding CountExperiments, ValidatesOnDataErrors=True, NotifyOnValidationError=True}"
                      Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center" />
 
-            <Label Grid.Row="5" Grid.Column="0" Content="Мат. ож.:" Margin="5" VerticalAlignment="Center" />
-            <Label Grid.Row="5" Grid.Column="1" Content="{Binding ExperimentExpectedValue}" Margin="5"
+            <Label Grid.Row="5" Grid.Column="0" Content="Среднее:" Margin="5" VerticalAlignment="Center" />
+            <Label Grid.Row="5" Grid.Column="1" Content="{Binding Mean}" Margin="5"
                    VerticalAlignment="Center" />
 
             <Button Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding GenerateCommand}" Content="Сгенерировать"

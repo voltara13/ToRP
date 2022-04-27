@@ -20,17 +20,14 @@ namespace ToRP.ViewModel
             remove => CommandManager.RequerySuggested -= value;
         }
 
-        public bool CanExecute(object? parameter)
+        public bool CanExecute(object parameter)
         {
-            return _canExecute != null && parameter != null && _canExecute(parameter);
+            return _canExecute != null && _canExecute(parameter);
         }
 
-        public void Execute(object? parameter)
+        public void Execute(object parameter)
         {
-            if (parameter != null)
-            {
-                _execute(parameter);
-            }
+            _execute(parameter);
         }
     }
 }

@@ -30,7 +30,7 @@ namespace ToRP.ViewModel
 
         public int ErrorsCount;
 
-        public RelayCommand GenerateCommand;
+        public RelayCommand GenerateCommand { get; }
         private SeriesCollection _seriesCollection = new();
 
         public MainWindowViewModel()
