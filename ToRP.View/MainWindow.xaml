@@ -3,58 +3,75 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ToRP.View"
-        xmlns:vm="clr-namespace:ToRP.ViewModel;assembly=ToRP.ViewModel"
         xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
         mc:Ignorable="d"
         Title="Генратор случайных процессов" Height="600" Width="1000">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="3*"/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="3*" />
+            <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
-        <lvc:CartesianChart Grid.Column="0" DisableAnimations="True" Series="{Binding SeriesCollection}" TooltipTimeout="00:00:00">
+        <lvc:CartesianChart Grid.Column="0" DisableAnimations="True" LegendLocation="Right"
+                            Series="{Binding SeriesCollection}" TooltipTimeout="00:00:00">
             <lvc:CartesianChart.AxisY>
-                <lvc:Axis Title="Кол-во вагонов">
-                </lvc:Axis>
+                <lvc:Axis Title="Кол-во вагонов" />
             </lvc:CartesianChart.AxisY>
             <lvc:CartesianChart.AxisX>
-                <lvc:Axis Title="Время моделирования (t)">
-                </lvc:Axis>
+                <lvc:Axis Title="Время моделирования (t)" />
             </lvc:CartesianChart.AxisX>
             <lvc:CartesianChart.DataTooltip>
-                <lvc:DefaultTooltip SelectionMode="OnlySender"/>
+                <lvc:DefaultTooltip SelectionMode="OnlySender" />
             </lvc:CartesianChart.DataTooltip>
         </lvc:CartesianChart>
 
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition/>
-                <RowDefinition/>
-                <RowDefinition/>
-                <RowDefinition/>
-                <RowDefinition/>
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
+                <RowDefinition />
             </Grid.RowDefinitions>
 
             <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
+                <ColumnDefinition />
+                <ColumnDefinition />
             </Grid.ColumnDefinitions>
 
-            <Label Grid.Row="0" Grid.Column="0" Content="Интенсивность:" Margin="5" VerticalAlignment="Center"/>
-            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Intensity, ValidatesOnDataErrors=True, NotifyOnValidationError=True}" Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center"/>
+            <Label Grid.Row="0" Grid.Column="0" Content="Интенсивность:" Margin="5" VerticalAlignment="Center" />
+            <TextBox Grid.Row="0" Grid.Column="1"
+                     Text="{Binding Intensity, ValidatesOnDataErrors=True, NotifyOnValidationError=True}"
+                     Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center" />
 
-            <Label Grid.Row="1" Grid.Column="0" Content="Среднее Mk:" Margin="5" VerticalAlignment="Center"/>
-            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ExpectedValue, ValidatesOnDataErrors=True, NotifyOnValidationError=True}" Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center"/>
+            <Label Grid.Row="1" Grid.Column="0" Content="Среднее Mk:" Margin="5" VerticalAlignment="Center" />
+            <TextBox Grid.Row="1" Grid.Column="1"
+                     Text="{Binding ExpectedValue, ValidatesOnDataErrors=True, NotifyOnValidationError=True}"
+                     Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center" />
 
-            <Label Grid.Row="2" Grid.Column="0" Content="Ср. кв. откл.:" Margin="5" VerticalAlignment="Center"/>
-            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding StandardDeviation, ValidatesOnDataErrors=True, NotifyOnValidationError=True}" Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center"/>
+            <Label Grid.Row="2" Grid.Column="0" Content="Ср. кв. откл.:" Margin="5" VerticalAlignment="Center" />
+            <TextBox Grid.Row="2" Grid.Column="1"
+                     Text="{Binding StandardDeviation, ValidatesOnDataErrors=True, NotifyOnValidationError=True}"
+                     Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center" />
 
-            <Label Grid.Row="3" Grid.Column="0" Content="Время мод-ия:" Margin="5" VerticalAlignment="Center"/>
-            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SimulationTime, ValidatesOnDataErrors=True, NotifyOnValidationError=True}" Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center"/>
+            <Label Grid.Row="3" Grid.Column="0" Content="Время мод-ия:" Margin="5" VerticalAlignment="Center" />
+            <TextBox Grid.Row="3" Grid.Column="1"
+                     Text="{Binding SimulationTime, ValidatesOnDataErrors=True, NotifyOnValidationError=True}"
+                     Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center" />
 
-            <Button Grid.Row="4" Grid.ColumnSpan="2" Command="{Binding GenerateCommand}" Content="Сгенерировать" Margin="10" Height="30"/>
+            <Label Grid.Row="4" Grid.Column="0" Content="Кол-во экс-ов:" Margin="5" VerticalAlignment="Center" />
+            <TextBox Grid.Row="4" Grid.Column="1"
+                     Text="{Binding CountExperiments, ValidatesOnDataErrors=True, NotifyOnValidationError=True}"
+                     Validation.Error="OnValidationError" Margin="5" VerticalAlignment="Center" />
+
+            <Label Grid.Row="5" Grid.Column="0" Content="Мат. ож.:" Margin="5" VerticalAlignment="Center" />
+            <Label Grid.Row="5" Grid.Column="1" Content="{Binding ExperimentExpectedValue}" Margin="5"
+                   VerticalAlignment="Center" />
+
+            <Button Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding GenerateCommand}" Content="Сгенерировать"
+                    Margin="10" Height="30" />
         </Grid>
     </Grid>
 </Window>

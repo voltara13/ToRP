@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using LiveCharts;
@@ -14,24 +13,32 @@ namespace ToRP.ViewModel
 {
     public class MainWindowViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
-        private readonly Func<double, double, double> _spacingFunction = (intensity, randomValue) => -1 / intensity * Math.Log(randomValue);
+        private const string FileName = "generate.csv";
+
+        private readonly Func<double, double, double> _spacingFunction =
+            (intensity, randomValue) => -1 / intensity * Math.Log(randomValue);
 
         private double _expectedValue = 10.0;
+
         private double _intensity = 0.4;
+
+        private double _mean;
         private double _simulationTime = 100.0;
         private double _standardDeviation = 4.0;
 
-        private GenerateCommand? _generateCommand;
+        private int _countExperiments = 1;
 
         public int ErrorsCount;
+
+        public RelayCommand GenerateCommand;
         private SeriesCollection _seriesCollection = new();
 
         public MainWindowViewModel()
         {
-            OnGenerateGraphs();
-        }
+            GenerateCommand = new RelayCommand(OnGenerateCommandExecute, OnGenerateCommandCanExecute);
 
-        public Func<double, string> LabelFormatter => value => Math.Round(value, 2).ToString();
+            OnGenerate();
+        }
 
         public SeriesCollection SeriesCollection
         {
@@ -63,13 +70,16 @@ namespace ToRP.ViewModel
             set => OnSimulationTimeChanged(SimulationTime, value);
         }
 
-        public GenerateCommand GenerateCommand
+        public int CountExperiments
         {
-            get
-            {
-                return _generateCommand ??= new GenerateCommand(_ => OnGenerateGraphs(),
-                    _ => string.IsNullOrEmpty(Error) && ErrorsCount == 0);
-            }
+            get => _countExperiments;
+            set => OnCountExperimentsChanged(CountExperiments, value);
+        }
+
+        public double Mean
+        {
+            get => _mean;
+            set => OnMeanChanged(Mean, value);
         }
 
         public string Error { get; }
@@ -86,6 +96,7 @@ namespace ToRP.ViewModel
                     case nameof(ExpectedValue) when ExpectedValue < 0:
                     case nameof(StandardDeviation) when StandardDeviation < 0:
                     case nameof(SimulationTime) when SimulationTime < 0:
+                    case nameof(CountExperiments) when CountExperiments < 0:
                     {
                         result = "Величина не может быть отрицательной";
                         break;
@@ -97,6 +108,16 @@ namespace ToRP.ViewModel
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        private bool OnGenerateCommandCanExecute(object arg)
+        {
+            return string.IsNullOrEmpty(Error) && ErrorsCount == 0;
+        }
+
+        private void OnGenerateCommandExecute(object obj)
+        {
+            OnGenerate();
+        }
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
@@ -151,6 +172,18 @@ namespace ToRP.ViewModel
             OnPropertyChanged(nameof(StandardDeviation));
         }
 
+        private void OnCountExperimentsChanged(int oldValue, int newValue)
+        {
+            if (oldValue == newValue)
+            {
+                return;
+            }
+
+            _countExperiments = newValue;
+
+            OnPropertyChanged(nameof(CountExperiments));
+        }
+
         private void OnSimulationTimeChanged(double oldValue, double newValue)
         {
             if (Math.Abs(oldValue - newValue) < 1e-4)
@@ -163,8 +196,20 @@ namespace ToRP.ViewModel
             OnPropertyChanged(nameof(SimulationTime));
         }
 
+        private void OnMeanChanged(double oldValue, double newValue)
+        {
+            if (Math.Abs(oldValue - newValue) < 1e-4)
+            {
+                return;
+            }
 
-        private void OnAddSeries(ChartValues<KeyValuePair<double, int>> values, string title)
+            _mean = newValue;
+
+            OnPropertyChanged(nameof(Mean));
+        }
+
+
+        private void OnAddSeries(ChartValues<KeyValuePair<double, double>> values, string title)
         {
             var item = new LineSeries
             {
@@ -173,37 +218,67 @@ namespace ToRP.ViewModel
                 Title = title,
                 Fill = Brushes.Transparent,
                 PointGeometrySize = 5,
-                Configuration = new CartesianMapper<KeyValuePair<double, int>>()
+                Configuration = new CartesianMapper<KeyValuePair<double, double>>()
                     .X(point => point.Key)
                     .Y(point => point.Value)
             };
 
-            SeriesCollection.Add(item);
+            _seriesCollection.Add(item);
         }
 
-        public void OnGenerateGraphs()
+        public async void OnGenerate()
         {
-            SeriesCollection.Clear();
+            _seriesCollection.Clear();
 
-            var generatorCount = new Normal(ExpectedValue, StandardDeviation);
+            var generatorCount = new Normal(_expectedValue, _standardDeviation);
             var generatorTime = new ContinuousUniform(0, 1);
 
-            var currentTime = _spacingFunction(Intensity, generatorTime.Sample());
+            _mean = 0.0;
 
-            var values = new ChartValues<KeyValuePair<double, int>>();
-
-            while (currentTime < SimulationTime)
+            await using (var writer = new StreamWriter(FileName, false))
             {
-                var count = (int) Math.Round(Math.Abs(generatorCount.Sample()));
+                for (var i = 0; i < _countExperiments; ++i)
+                {
+                    await writer.WriteLineAsync($"EXPERIMENT {i + 1}");
 
-                values.Add(new KeyValuePair<double, int>(currentTime, count));
+                    var currentTime = _spacingFunction(_intensity, generatorTime.Sample());
 
-                currentTime += _spacingFunction(Intensity, generatorTime.Sample());
+                    var chartValue = new ChartValues<KeyValuePair<double, double>> {new(0.0, 0.0)};
+
+                    var sumGeneratorValue = 0.0;
+
+                    var countEvents = 0;
+
+                    while (currentTime < _simulationTime)
+                    {
+                        var generatorValue = 0.0;
+
+                        while (generatorValue < 1e-4)
+                        {
+                            generatorValue = Math.Round(generatorCount.Sample());
+                        }
+
+                        chartValue.Add(new KeyValuePair<double, double>(currentTime, generatorValue));
+
+                        await writer.WriteLineAsync($"{currentTime};{generatorValue}");
+
+                        currentTime += _spacingFunction(_intensity, generatorTime.Sample());
+
+                        sumGeneratorValue += generatorValue;
+
+                        countEvents++;
+                    }
+
+                    _mean += countEvents != 0 ? sumGeneratorValue / countEvents : 0;
+
+                    OnAddSeries(chartValue, $"Эксперимент {i + 1}");
+                }
             }
 
-            OnAddSeries(values, "Кол-во вагонов");
+            _mean = Math.Round(_countExperiments != 0 ? _mean / _countExperiments : 0.0, 2);
 
             OnPropertyChanged(nameof(SeriesCollection));
+            OnPropertyChanged(nameof(Mean));
         }
     }
 }
